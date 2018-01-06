@@ -1,0 +1,23 @@
+.main-grid {
+  position: fixed;
+  border: 2px solid black;
+  border-radius: 12px;
+  left: 15px;
+  top: 15px;
+  background: white;
+  box-shadow: 3px 3px 5px 0px rgba(0,0,0,0.75);
+  padding: 12px;
+  display: grid;
+  grid-template-columns: auto auto;
+  grid-template-rows: auto auto auto;
+}
+
+.main-grid label {
+  grid-column: 1;
+  justify-self: right;
+  align-self: center;
+}
+
+.main-grid input {
+  margin: 2px 4px;
+}

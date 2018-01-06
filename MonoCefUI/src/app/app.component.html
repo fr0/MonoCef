@@ -1,0 +1,17 @@
+<div class="main-grid">
+  <label>
+    Number of triangles:
+  </label>
+  <input type="number" [(ngModel)]="settings.triangles" min="0" max="50" maxlength="2"
+         (ngModelChange)="update()"/>
+  <label>
+    Number of squares:
+  </label>
+  <input type="number" [(ngModel)]="settings.squares" min="0" max="50" maxlength="2"
+         (ngModelChange)="update()"/>
+  <label>
+    Number of circles:
+  </label>
+  <input type="number" [(ngModel)]="settings.circles" min="0" max="50" maxlength="2"
+         (ngModelChange)="update()"/>
+</div>

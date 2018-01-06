@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>MonoCefUI</title>
+  <base href="/">
+
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="icon" type="image/x-icon" href="favicon.ico">
+  <script>
+    /**
+     * Set up some initial pushData/pullData handlers.
+     * These will be overwritten by the DataMarshallerService,
+     * once it gets off the ground.
+     */
+    window['pushData'] = function(data) {
+      window['initialData'] = JSON.parse(data);
+    };
+    window['pullData'] = function() {
+      return JSON.stringify(window['initialData'] || false);
+    };
+    window['changeCount'] = function() {
+      return 0;
+    };
+  </script>
+</head>
+<body>
+  <app-root></app-root>
+</body>
+</html>
