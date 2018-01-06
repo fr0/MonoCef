@@ -1,0 +1,7 @@
+Build/
+Source/packages/
+.idea/
+bin
+obj
+*.suo
+*.user
