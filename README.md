@@ -13,8 +13,8 @@ at all required in order to make use of this technique.
 1. Install Visual Studio 2015.
 2. Install [node.js](https://nodejs.org/en/) version 6.11.0 or later.
 3. In the `MonoCefUI` directory, from a console window, PowerShell, or [Cygwin](https://www.cygwin.com/) bash shell:
-     a. Run `npm install`
-     b. Run `npm run build`
+  1. Run `npm install`
+  2. Run `npm run build`
 4. Compile and run the `Source/MonoCef.sln` solution in Visual Studio.
 
 ## Approach
