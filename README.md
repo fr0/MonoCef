@@ -27,7 +27,7 @@ the pixels are copied onto a MonoGame `Texture2D`, which is drawn during each re
 
 * You can debug the hosted browser using the Chrome Remote Debugger. Open a browser window to [http://localhost:8088/](http://localhost:8088/).
 * If you're making frequent changes to the UI, run `npm run watch` instead of `npm run build`. This will watch your filesystem and recompile as needed.
-* ...or, run `npm start` and point a web browser to (http://localhost:4200/)[http://localhost:4200/] if you want to view the UI directly in your browser instead of hosted in the MonoGame app.
+* ...or, run `npm start` and point a web browser to [http://localhost:4200/](http://localhost:4200/) if you want to view the UI directly in your browser instead of hosted in the MonoGame app.
 
 ## Improvements
 
@@ -35,7 +35,7 @@ the pixels are copied onto a MonoGame `Texture2D`, which is drawn during each re
   * Figure out how to get dirty rect support to work, to avoid copying the entire screen every time there is a UI change.
   * Figure out how to [copy directly to video RAM](https://bitbucket.org/chromiumembedded/cef/issues/1006) from the offscreen browser (I'm not sure if this is even possible right now)
 * Input
-  * The `KeyboardHandler` code needs to be beefed up; in particular, it doesn't handle all keys (e.g. numpad) correctly, and it doesn't do modifier keys either.
+  * The [KeyboardHandler](https://github.com/fr0/MonoCef/blob/master/Source/KeyboardHandler.cs) code needs to be beefed up; in particular, it doesn't handle all keys (e.g. numpad) correctly, and it doesn't do modifier keys either.
 * Data Marshalling
   * I couldn't get [RegisterAsyncJsObject](http://cefsharp.github.io/api/57.0.0/html/M_CefSharp_Wpf_ChromiumWebBrowser_RegisterAsyncJsObject.htm) to work, so
     I'm using [ExecuteScriptAsync](http://cefsharp.github.io/api/57.0.0/html/M_CefSharp_WebBrowserExtensions_ExecuteScriptAsync_1.htm)
