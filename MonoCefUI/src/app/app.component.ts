@@ -32,5 +32,4 @@ export class AppComponent implements OnChanges {
   update() {
     this.dataService.update(this.settings);
   }
-
 }

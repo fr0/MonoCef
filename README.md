@@ -10,8 +10,8 @@ at all required in order to make use of this technique.
 
 ## Setup
 
-1. Install Visual Studio 2015.
-2. Install [node.js](https://nodejs.org/en/) version 6.11.0 or later.
+1. Install Visual Studio 2019.
+2. Install [node.js](https://nodejs.org/en/) version 12.13.0 or later.
 3. In the `MonoCefUI` directory, from a console window, PowerShell, or [Cygwin](https://www.cygwin.com/) bash shell:
   1. Run `npm install`
   2. Run `npm run build`
@@ -32,7 +32,6 @@ the pixels are copied onto a MonoGame `Texture2D`, which is drawn during each re
 ## Improvements
 
 * Performance
-  * Figure out how to get dirty rect support to work, to avoid copying the entire screen every time there is a UI change.
   * Figure out how to [copy directly to video RAM](https://bitbucket.org/chromiumembedded/cef/issues/1006) from the offscreen browser (I'm not sure if this is even possible right now)
 * Input
   * The [KeyboardHandler](https://github.com/fr0/MonoCef/blob/master/Source/KeyboardHandler.cs) code needs to be beefed up; in particular, it doesn't handle all keys (e.g. numpad) correctly, and it doesn't do modifier keys either.

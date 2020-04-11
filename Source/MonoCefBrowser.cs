@@ -2,6 +2,7 @@
 using CefSharp.Internals;
 using CefSharp.OffScreen;
 using CefSharp.SchemeHandler;
+using CefSharp.Structs;
 using Microsoft.Xna.Framework.Graphics;
 using Newtonsoft.Json;
 using System;
@@ -21,6 +22,26 @@ namespace MonoCef
       : base(address, browserSettings, requestContext, false)
     {
       this.Graphics = gd;
+      this.Paint += MonoCefBrowser_Paint;
+    }
+
+    private void MonoCefBrowser_Paint(object sender, OnPaintEventArgs e)
+    {
+      if (e.DirtyRect.Width == 0 || e.DirtyRect.Height == 0) { return; }
+      TotalTime.Start();
+      var bmp = this.ScreenshotOrNull(PopupBlending.Main);
+      Texture2D texture = null;
+      if (bmp != null)
+      {
+        texture = GetTexture(bmp, e.DirtyRect);
+        RenderCount++;
+        //Console.WriteLine($"{TotalTime.ElapsedMilliseconds / (double)RenderCount}");
+      }
+      TotalTime.Stop();
+      if (texture != null)
+      {
+        this.NewFrame?.Invoke(this, new NewFrameEventArgs(texture));
+      }
     }
 
     readonly GraphicsDevice Graphics;
@@ -28,59 +49,39 @@ namespace MonoCef
 
     Stopwatch TotalTime = new Stopwatch();
     int RenderCount;
+    byte[] ImageData;
+    int ImageDataWidth;
+    int ImageDataHeight;
+    Texture2D Texture;
 
-    public override void InvokeRenderAsync(BitmapInfo bitmapInfo)
+    private Texture2D GetTexture(Bitmap bmp, Rect dirtyRect)
     {
-      if (this.Bitmap != null)
+      if (ImageData == null || bmp.Width != ImageDataWidth || bmp.Height != ImageDataHeight)
       {
-        Texture2D texture;
-        lock (bitmapInfo.BitmapLock)
-        {
-          //var stride = bitmapInfo.Width * bitmapInfo.BytesPerPixel;
-          //bitmap = new Bitmap(bitmapInfo.Width, bitmapInfo.Height, stride, PixelFormat.Format32bppPArgb, bitmapInfo.BackBufferHandle);
-          TotalTime.Start();
-          texture = GetTexture(this.Bitmap);
-          TotalTime.Stop();
-          RenderCount++;
-          Console.WriteLine($"{TotalTime.ElapsedMilliseconds / (double)RenderCount}");
-        }
-        NewFrame?.Invoke(this, new NewFrameEventArgs(texture));
+        this.ImageData = new byte[bmp.Width * bmp.Height * 4];
+        this.ImageDataWidth = bmp.Width;
+        this.ImageDataHeight = bmp.Height;
+        this.Texture = new Texture2D(Graphics, bmp.Width, bmp.Height);
       }
-      //bitmap.Dispose();
-      base.InvokeRenderAsync(bitmapInfo);
-    }
-
-
-    private Texture2D GetTexture(Bitmap bmp)
-    {
-      int[] imgData = new int[bmp.Width * bmp.Height];
-      Texture2D texture = new Texture2D(Graphics, bmp.Width, bmp.Height);
 
       unsafe
       {
-        // lock bitmap
-        BitmapData origdata = bmp.LockBits(new Rectangle(0, 0, bmp.Width, bmp.Height), ImageLockMode.ReadOnly, bmp.PixelFormat);
+        BitmapData origdata = bmp.LockBits(new Rectangle(dirtyRect.X, dirtyRect.Y, dirtyRect.Width, dirtyRect.Height), ImageLockMode.ReadOnly, PixelFormat.Format32bppArgb);
+        int absStride = Math.Abs(origdata.Stride);
 
-        uint* byteData = (uint*)origdata.Scan0;
-
-        // Switch bgra -> rgba
-        for (int i = 0; i < imgData.Length; i++)
+        for (int i = 0; i < dirtyRect.Height; i++)
         {
-          byteData[i] = (byteData[i] & 0x000000ff) << 16 | (byteData[i] & 0x0000FF00) | (byteData[i] & 0x00FF0000) >> 16 | (byteData[i] & 0xFF000000);
+          IntPtr pointer = new IntPtr(origdata.Scan0.ToInt32() + (origdata.Stride * i));
+          var y = i + dirtyRect.Y;
+          var x = dirtyRect.X;
+          System.Runtime.InteropServices.Marshal.Copy(pointer, ImageData, x*4 + bmp.Width * 4 * y, absStride);
         }
-
-        // copy data
-        System.Runtime.InteropServices.Marshal.Copy(origdata.Scan0, imgData, 0, bmp.Width * bmp.Height);
-
-        byteData = null;
-
-        // unlock bitmap
         bmp.UnlockBits(origdata);
       }
 
-      texture.SetData(imgData);
+      this.Texture.SetData(ImageData);
 
-      return texture;
+      return this.Texture;
     }
   }
 
@@ -114,6 +115,9 @@ namespace MonoCef
 
     static void Init(bool multiThreadedMessageLoop, IBrowserProcessHandler browserProcessHandler)
     {
+      CefSharpSettings.ShutdownOnExit = true;
+      CefSharpSettings.FocusedNodeChangedEnabled = true;
+
       // Set Google API keys, used for Geolocation requests sans GPS.  See http://www.chromium.org/developers/how-tos/api-keys
       // Environment.SetEnvironmentVariable("GOOGLE_API_KEY", "");
       // Environment.SetEnvironmentVariable("GOOGLE_DEFAULT_CLIENT_ID", "");
@@ -149,10 +153,6 @@ namespace MonoCef
       //settings.CefCommandLineArgs.Add("disable-extensions", "1"); //Extension support can be disabled
       //settings.CefCommandLineArgs.Add("disable-pdf-extension", "1"); //The PDF extension specifically can be disabled
 
-      //Load the pepper flash player that comes with Google Chrome - may be possible to load these values from the registry and query the dll for it's version info (Step 2 not strictly required it seems)
-      //settings.CefCommandLineArgs.Add("ppapi-flash-path", @"C:\Program Files (x86)\Google\Chrome\Application\47.0.2526.106\PepperFlash\pepflashplayer.dll"); //Load a specific pepper flash version (Step 1 of 2)
-      //settings.CefCommandLineArgs.Add("ppapi-flash-version", "20.0.0.228"); //Load a specific pepper flash version (Step 2 of 2)
-
       //NOTE: For OSR best performance you should run with GPU disabled:
       // `--disable-gpu --disable-gpu-compositing --enable-begin-frame-scheduling`
       // (you'll loose WebGL support but gain increased FPS and reduced CPU usage).
@@ -160,7 +160,7 @@ namespace MonoCef
       //https://bitbucket.org/chromiumembedded/cef/commits/e3c1d8632eb43c1c2793d71639f3f5695696a5e8
 
       //NOTE: The following function will set all three params
-      //settings.SetOffScreenRenderingBestPerformanceArgs();
+      settings.SetOffScreenRenderingBestPerformanceArgs();
       //settings.CefCommandLineArgs.Add("disable-gpu", "1");
       //settings.CefCommandLineArgs.Add("disable-gpu-compositing", "1");
       //settings.CefCommandLineArgs.Add("enable-begin-frame-scheduling", "1");
@@ -219,9 +219,7 @@ namespace MonoCef
         SchemeHandlerFactory = new SchemeHandlerFactory(),
         IsSecure = true //treated with the same security rules as those applied to "https" URLs
       });
-
-      settings.FocusedNodeChangedEnabled = true;
-
+      
       if (!Cef.Initialize(settings, performDependencyCheck: !DebuggingSubProcess, browserProcessHandler: browserProcessHandler))
       {
         throw new Exception("Unable to Initialize Cef");
@@ -237,7 +235,7 @@ namespace MonoCef
     public MonoCefBrowser Browser;
     public Texture2D CurrentFrame;
 
-    public void Resize(Size size)
+    public void Resize(System.Drawing.Size size)
     {
       Browser.Size = size;
     }
@@ -286,7 +284,7 @@ namespace MonoCef
       });
     }
 
-    public async Task MainAsync(GraphicsDevice gd, IntPtr windowHandle, string url, object data, Size size, double zoomLevel = 1.0)
+    public async Task MainAsync(GraphicsDevice gd, IntPtr windowHandle, string url, object data, System.Drawing.Size size, double zoomLevel = 1.0)
     {
       if (Browser != null)
       {
@@ -303,7 +301,12 @@ namespace MonoCef
       // e.g. CachePath
       RequestContext = new RequestContext(requestContextSettings);
       Browser = new MonoCefBrowser(gd, url, browserSettings, RequestContext);
-      Browser.CreateBrowser(windowHandle);
+      Browser.CreateBrowser(new WindowInfo() {
+        WindowHandle = windowHandle,
+        Width = size.Width,
+        Height = size.Height,
+        WindowlessRenderingEnabled = true
+      }, browserSettings);
       Browser.NewFrame += Browser_NewFrame;
       Browser.Size = size;
       if (zoomLevel > 1)
@@ -332,13 +335,6 @@ namespace MonoCef
 
       var onUi = Cef.CurrentlyOnThread(CefThreadIds.TID_UI);
 
-      // For Google.com pre-pupulate the search text box
-      //await Browser.EvaluateScriptAsync("document.getElementById('lst-ib').value = 'CefSharp Was Here!'");
-
-      // Wait for the screenshot to be taken,
-      // if one exists ignore it, wait for a new one to make sure we have the most up to date
-      //await Browser.ScreenshotAsync(true).ContinueWith(DisplayBitmap);
-
       await LoadPageAsync(Browser, url);
 
       //Gets a wrapper around the underlying CefBrowser instance
@@ -346,6 +342,7 @@ namespace MonoCef
       // Gets a warpper around the CefBrowserHost instance
       // You can perform a lot of low level browser operations using this interface
       var cefHost = cefBrowser.GetHost();
+      cefHost.SendFocusEvent(true);
 
       SetMarshalledData(data);
 
@@ -399,6 +396,7 @@ namespace MonoCef
       if (Browser != null)
       {
         Browser.GetBrowser().GetHost().SendMouseClickEvent(x, y, type, false, 1, CefEventFlags.None);
+        Browser.GetBrowser().GetHost().Invalidate(PaintElementType.View);
       }
     }
     public void HandleMouseUp(int x, int y, MouseButtonType type)
@@ -406,6 +404,7 @@ namespace MonoCef
       if (Browser != null)
       {
         Browser.GetBrowser().GetHost().SendMouseClickEvent(x, y, type, true, 1, CefEventFlags.None);
+        Browser.GetBrowser().GetHost().Invalidate(PaintElementType.View);
       }
     }
     public void HandleKeyEvent(KeyEvent k)
@@ -413,6 +412,7 @@ namespace MonoCef
       if (Browser != null)
       {
         Browser.GetBrowser().GetHost().SendKeyEvent(k);
+        Browser.GetBrowser().GetHost().Invalidate(PaintElementType.View);
       }
     }
   }

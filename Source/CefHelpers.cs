@@ -73,8 +73,7 @@ namespace MonoCef
     {
       //The Request Context has been initialized, you can now set preferences, like proxy server settings
       var cookieManager = Cef.GetGlobalCookieManager();
-      cookieManager.SetStoragePath("cookies", true);
-      cookieManager.SetSupportedSchemes(new string[] { "custom" });
+      cookieManager.SetSupportedSchemes(new string[] { "custom" }, true);
       if (cookieManager.SetCookie("custom://cefsharp/index.html", new Cookie
       {
         Name = "CefSharpTestCookie",
